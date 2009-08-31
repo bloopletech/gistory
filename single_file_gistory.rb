@@ -4,6 +4,10 @@ require 'erb'
 require 'grit'
 include Grit
 
+set :logging, false
+set :host, 'localhost'
+set :port, 6568
+
 class String
   def ucfirst
     out = self
@@ -13,10 +17,12 @@ class String
 end
 
 def supplied?(thing, thing_name)
-  if thing.nil? or thing.gsub(/\s+/, '') == ''
-    puts "No #{thing_name} supplied"
-    exit
+  while thing.nil? or thing.gsub(/\s+/, '') == ''
+    print "No #{thing_name} supplied; please enter #{thing_name}, or nothing to exit: "
+    thing = gets.chomp
+    exit if thing == ''
   end
+  thing
 end
 
 def get_commits(repo, file_name, branch)
@@ -47,9 +53,14 @@ end
 
 repo_dir, file_name, branch = ARGV[0..3]
 
-supplied?(repo_dir, "repo")
-supplied?(file_name, "file")
-supplied?(branch, "branch")
+repo_dir = supplied?(repo_dir, "repo")
+file_name = supplied?(file_name, "file")
+branch = supplied?(branch, "branch")
+
+unless File.exists?(File.expand_path(repo_dir))
+  puts "The repo you spplied doesn't exist; please check the data you supplied and try again."
+  exit
+end
 
 repo = Repo.new(File.expand_path(repo_dir))
 
@@ -73,6 +84,11 @@ end
 
 commits = get_commits(repo, file_name, branch)
 
+if commits.empty?
+  puts "No commits found for supplied data; pleast check the data you supplied and try again."
+  exit
+end
+
 puts "Loaded commits"
 
 get '/' do
@@ -82,12 +98,12 @@ get '/' do
 end
 
 get '/commit/*' do
+  @delay = 1
   @repo_dir = repo_dir
   @commits = commits
   @commit_index = params[:splat].first.to_i
   commit_diff = commits[@commit_index]
-  @commit, @diff = commit_diff[:commit], commit_diff[:diff]
-  puts @commit.sha  
+  @commit, @diff = commit_diff[:commit], commit_diff[:diff] 
   
   @diff_data = diff_to_html(@commit, @diff)
 #  puts @diff_data[:content].inspect
@@ -107,46 +123,50 @@ helpers do
   
   def diff_to_html(commit, diff)
     if diff.diff =~ /^rename/
-      { :type => 'rename', :message => diff.diff.ucfirst, :content => nil }
+      { :type => 'rename', :message => diff.diff.ucfirst.gsub("\n", " => "), :content => nil }
     elsif diff.diff =~ /^Binary/
       if diff.new_file
-        { :type => 'new', :message => "Created binary file <a href='/show/#{commit.sha}/#{h diff.b_path}'>#{h diff.b_path}</a>", :content => nil }
+        { :type => 'new', :message => "Created binary file #{h diff.b_path}", :content => nil }
       elsif diff.deleted_file
         { :type => 'delete', :message => "Deleted binary file #{h diff.a_path}", :content => nil }
       else
-        { :type => 'change', :message => "Changed binary file <a href='/show/#{commit.sha}/#{h diff.a_path}'>#{h diff.a_path}</a>", :content => nil }
+        { :type => 'change', :message => "Changed binary file #{h diff.a_path}", :content => nil }
       end
     else
-      puts diff.diff
+      #puts diff.diff
       content_lines = diff.diff.split(/\n/)[2..-1]
       line_offset = 1
       changes = []
+      should_change = false
       content_lines.each do |l|
-        puts "line_offset: #{line_offset}, l: #{l}"
+        #puts "line_offset: #{line_offset}, l: #{l}"
         if l =~ /^(\@\@ \-(\d+),(\d+) \+(\d+),(\d+) \@\@)/
-          line_offset = $2.to_i == 0 ? 1 : $2.to_i
+          line_offset = $4.to_i == 0 ? 1 : $4.to_i
         else
           if l =~ /^\+/
-            changes << { :start => line_offset, :lines => "", :mode => :add } if changes.empty? or changes.last[:mode] != :add
-            changes.last[:mode] = :add
-            lt = h(l[1..-1]).gsub(' ', "&nbsp;")
+            changes << { :start => line_offset, :lines => "", :mode => :add } if should_change or changes.empty? or changes.last[:mode] != :add
+            should_change = false
+            lt = h(l[1..-1]).gsub(/  /, " &nbsp;")
             changes.last[:lines] << "<div>#{lt == '' ? "&nbsp;" : lt}</div>"
           elsif l =~ /^-/
-            changes << { :start => line_offset, :times => 0, :mode => :remove } if changes.empty? or changes.last[:mode] != :remove
+            changes << { :start => line_offset, :times => 0, :mode => :remove } if should_change or changes.empty? or changes.last[:mode] != :remove
+            should_change = false
             changes.last[:times] += 1
             line_offset -= 1
+          else
+            should_change = true
           end
           line_offset += 1
         end
       end
-      puts changes.inspect
+      #puts changes.inspect
 
       if diff.new_file
-        { :type => 'new', :message => "Created file <a href='/show/#{commit.sha}/#{h diff.b_path}'>#{h diff.b_path}</a>", :content => changes }
+        { :type => 'new', :message => "Created file #{h diff.b_path}", :content => changes }
       elsif diff.deleted_file
         { :type => 'delete', :message => "Deleted file #{diff.a_path}", :content => changes }
       else
-        { :type => 'change', :message => "Changed file <a href='/show/#{commit.sha}/#{h diff.a_path}'>#{diff.a_path}</a>", :content => changes }
+        { :type => 'change', :message => "Changed file #{diff.a_path}", :content => changes }
       end
     end
   end
@@ -157,3 +177,13 @@ helpers do
 end
 
 puts "Started"
+
+sleep(1)
+
+#if RUBY_PLATFORM =~ /(win|w)32$/
+#  `start http://localhost:6568/`
+if RUBY_PLATFORM =~ /darwin/
+  `open http://localhost:6568/`
+else
+  puts "Please open your web browser and visit http://localhost:6568/"
+end

@@ -1,24 +1,52 @@
 $('commit_index').innerHTML = "<%= j @commit_index + 1 %>";
 $('commit_message').innerHTML = "<%= j @commit.message %>";
-$('committer_author_details').innerHTML = "<%= 'lol' %>";
+$('committer_author_details').innerHTML = "<%= h @commit.committer.name_email %><%= (@commit.committer != @commit.author ? " for #{h @commit.author.name_email}": "") %>";
 $('committer_date_time').innerHTML = "<%= j @commit.date.nice %>";
 $('diff_message').innerHTML = "<%= j @diff_data[:message] %>";
-var queue = []
+var queue = [];
+<% if @diff_data[:type] == 'rename' %>
+  queue.push(function()
+  {
+    Effect.ScrollTo($$("body")[0], { duration: <%= @delay %>, offset: 0, afterFinish: function()
+    {
+      if(queue.length > 0)(queue.shift())();
+    } });
+  });
+<% end %>
 <% if @diff_data[:content] %>
   <% @diff_data[:content].each do |change| %>
-    <% if change[:mode] == :add %>
+    <% if false && @diff_data[:type] == 'change' %>
       queue.push(function()
       {
-        console.log("Add stuff");
-        var wrapper = new Element('div');
+        var removePoint = $('diff_content').down(<%= change[:start] %>);
+        Effect.ScrollTo(removePoint, { duration: <%= @delay %>, offset: -30 });
+
+        var wrapper = new Element('div', { 'class': 'sdgasgsagd' });
+        wrapper.update("<%= j change[:lines] %>");
+        wrapper.addClassName("change_line");
+
+        var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
+        Effect.ScrollTo(insertPoint, { duration: <%= @delay %>, offset: -30, afterFinish: function()
+        {
+          insertPoint.insert({ 'after': wrapper });
+          wrapper.hide().appear({ duration: <%= @delay %>, afterFinish: function()
+          {
+            wrapper.replace(wrapper.innerHTML);
+            if(queue.length > 0)(queue.shift())();
+          } });
+        } });
+      });
+    <% elsif change[:mode] == :add %>
+      queue.push(function()
+      {
+        var wrapper = new Element('div', { 'class': 'asasfafaasfaf' });
         wrapper.update("<%= j change[:lines] %>");
     
         var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
-        console.log(insertPoint);
-        Effect.ScrollTo(insertPoint, { duration: 2.0, offset: -30, afterFinish: function()
+        Effect.ScrollTo(insertPoint, { duration: <%= @delay %>, offset: -30, afterFinish: function()
         {
           insertPoint.insert({ 'after': wrapper });
-          wrapper.hide().appear({ duration: 2.0, afterFinish: function()
+          wrapper.hide().blindDown({ duration: <%= @delay %>, afterFinish: function()
           {
             wrapper.replace(wrapper.innerHTML);
             if(queue.length > 0)(queue.shift())();
@@ -26,32 +54,36 @@ var queue = []
         } });
       });
     <% elsif change[:mode] == :remove %>
-      <% change[:times].times do %>
-        queue.push(function()
+      queue.push(function()
+      {
+        var removePoint = new Element('div');
+        $('diff_content').down(<%= change[:start] %>).insert({ 'before': removePoint });
+
+        <% change[:times].times do %>
+          removePoint.insert({ 'bottom': $('diff_content').down(<%= change[:start] + 1 %>) });
+        <% end %>
+
+        Effect.ScrollTo(removePoint, { duration: <%= @delay %>, offset: -30, afterFinish: function()
         {
-          console.log("Removing stuff");
-          var removePoint = $('diff_content').down(<%= change[:start] %>);
-          console.log(removePoint);
-          Effect.ScrollTo(removePoint, { duration: 2.0, offset: -30, afterFinish: function()
+          removePoint.blindUp({ duration: <%= @delay %>, afterFinish: function()
           {
-            removePoint.fade({ duration: 2.0, afterFinish: function()
-            {
-              removePoint.remove();
-              if(queue.length > 0) (queue.shift())();
-            } });
+            console.log(removePoint.remove());
+            if(queue.length > 0) (queue.shift())();
           } });
-        });      
-      <% end %>
+        } });
+      });
     <% end %>
   <% end %>
 <% end %>
-///*
-queue.push(function()
-{
-  setTimeout(function()
+
+<% if @commit_index < @commits.length - 1 %>
+  queue.push(function()
   {
-    new Ajax.Request("/commit/<%= @commit_index.to_i + 1 %>", { method: 'get' });
-  }, 2000);
-});
-//*/
+    setTimeout(function()
+    {
+      new Ajax.Request("/commit/<%= @commit_index.to_i + 1 %>", { method: 'get' });
+    }, <%= @delay * 1000 %>);
+  });
+<% end %>
+
 if(queue.length > 0) (queue.shift())();
