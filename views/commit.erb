@@ -1,0 +1,57 @@
+$('commit_index').innerHTML = "<%= j @commit_index + 1 %>";
+$('commit_message').innerHTML = "<%= j @commit.message %>";
+$('committer_author_details').innerHTML = "<%= 'lol' %>";
+$('committer_date_time').innerHTML = "<%= j @commit.date.nice %>";
+$('diff_message').innerHTML = "<%= j @diff_data[:message] %>";
+var queue = []
+<% if @diff_data[:content] %>
+  <% @diff_data[:content].each do |change| %>
+    <% if change[:mode] == :add %>
+      queue.push(function()
+      {
+        console.log("Add stuff");
+        var wrapper = new Element('div');
+        wrapper.update("<%= j change[:lines] %>");
+    
+        var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
+        console.log(insertPoint);
+        Effect.ScrollTo(insertPoint, { duration: 2.0, offset: -30, afterFinish: function()
+        {
+          insertPoint.insert({ 'after': wrapper });
+          wrapper.hide().appear({ duration: 2.0, afterFinish: function()
+          {
+            wrapper.replace(wrapper.innerHTML);
+            if(queue.length > 0)(queue.shift())();
+          } });
+        } });
+      });
+    <% elsif change[:mode] == :remove %>
+      <% change[:times].times do %>
+        queue.push(function()
+        {
+          console.log("Removing stuff");
+          var removePoint = $('diff_content').down(<%= change[:start] %>);
+          console.log(removePoint);
+          Effect.ScrollTo(removePoint, { duration: 2.0, offset: -30, afterFinish: function()
+          {
+            removePoint.fade({ duration: 2.0, afterFinish: function()
+            {
+              removePoint.remove();
+              if(queue.length > 0) (queue.shift())();
+            } });
+          } });
+        });      
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+///*
+queue.push(function()
+{
+  setTimeout(function()
+  {
+    new Ajax.Request("/commit/<%= @commit_index.to_i + 1 %>", { method: 'get' });
+  }, 2000);
+});
+//*/
+if(queue.length > 0) (queue.shift())();
