@@ -21,7 +21,7 @@ var queue = [];
         var removePoint = $('diff_content').down(<%= change[:start] %>);
         Effect.ScrollTo(removePoint, { duration: <%= @delay %>, offset: -30 });
 
-        var wrapper = new Element('div', { 'class': 'sdgasgsagd' });
+        var wrapper = new Element('div');
         wrapper.update("<%= j change[:lines] %>");
         wrapper.addClassName("change_line");
 
@@ -39,7 +39,7 @@ var queue = [];
     <% elsif change[:mode] == :add %>
       queue.push(function()
       {
-        var wrapper = new Element('div', { 'class': 'asasfafaasfaf' });
+        var wrapper = new Element('div');
         wrapper.update("<%= j change[:lines] %>");
     
         var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
@@ -68,7 +68,6 @@ var queue = [];
           removePoint.blindUp({ duration: <%= @delay %>, afterFinish: function()
           {
             removePoint.remove();
-//            console.log(removePoint.remove());
             if(queue.length > 0) (queue.shift())();
           } });
         } });
