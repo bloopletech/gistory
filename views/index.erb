@@ -1,7 +1,9 @@
-<h2><span>Commit <span id="commit_index"></span> of <%= @commits.length %>: <span id="commit_message"></span> by <span id="committer_author_details"></span> at <span id="committer_date_time"></span></h2>
-
-<div class="diff">
+<div id="header">
+  <h2><span>Commit <span id="commit_index"></span> of <%= @commits.length %>: <span id="commit_message"></span> by <span id="committer_author_details"></span> at <span id="committer_date_time"></span></h2>
   <h3><span id="diff_message"></span></h3>
+</div>
+
+<div id="diff">
   <div id="diff_content">
     <div></div>
   </div>

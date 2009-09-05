@@ -3,7 +3,7 @@ $('commit_message').innerHTML = "<%= j @commit.message %>";
 $('committer_author_details').innerHTML = "<%= h @commit.committer.name_email %><%= (@commit.committer != @commit.author ? " for #{h @commit.author.name_email}": "") %>";
 $('committer_date_time').innerHTML = "<%= j @commit.date.nice %>";
 $('diff_message').innerHTML = "<%= j @diff_data[:message] %>";
-var queue = [];
+queue = [];
 <% if @diff_data[:type] == 'rename' %>
   queue.push(function()
   {
@@ -16,60 +16,57 @@ var queue = [];
 <% if @diff_data[:content] %>
   <% @diff_data[:content].each do |change| %>
     <% if false && @diff_data[:type] == 'change' %>
-      queue.push(function()
-      {
-        var removePoint = $('diff_content').down(<%= change[:start] %>);
-        Effect.ScrollTo(removePoint, { duration: <%= @delay %>, offset: -30 });
-
-        var wrapper = new Element('div');
-        wrapper.update("<%= j change[:lines] %>");
-        wrapper.addClassName("change_line");
-
-        var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
-        Effect.ScrollTo(insertPoint, { duration: <%= @delay %>, offset: -30, afterFinish: function()
-        {
-          insertPoint.insert({ 'after': wrapper });
-          wrapper.hide().appear({ duration: <%= @delay %>, afterFinish: function()
-          {
-            wrapper.replace(wrapper.innerHTML);
-            if(queue.length > 0)(queue.shift())();
-          } });
-        } });
-      });
     <% elsif change[:mode] == :add %>
+      $("diff").setStyle({ 'paddingTop': $('header').getHeight() + "px" });
       queue.push(function()
       {
         var wrapper = new Element('div');
         wrapper.update("<%= j change[:lines] %>");
-    
+
+        var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
         var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
-        Effect.ScrollTo(insertPoint, { duration: <%= @delay %>, offset: -30, afterFinish: function()
+        Effect.ScrollTo(insertPoint, { duration: (scrollToDistance(insertPoint, scrollOffset) / (diffContentFontSize * <%= @lps %>)), offset: scrollOffset, afterFinish: function()
         {
           insertPoint.insert({ 'after': wrapper });
-          wrapper.hide().blindDown({ duration: <%= @delay %>, afterFinish: function()
+
+          var blindDuration = (blindDistance(wrapper) / (diffContentFontSize * <%= @lps %>));
+          wrapper.hide().blindDown({ duration: blindDuration, afterFinish: function()
           {
             wrapper.replace(wrapper.innerHTML);
             if(queue.length > 0)(queue.shift())();
           } });
+
+          if(blindDistance(wrapper) > document.viewport.getHeight())
+          {
+            Effect.ScrollToBottom(wrapper, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDistance(wrapper) - 0.5 < 0 ? 0 : 0.5) });
+          }
         } });
       });
     <% elsif change[:mode] == :remove %>
+      $("diff").setStyle({ 'paddingTop': $('header').getHeight() + "px" });
       queue.push(function()
       {
         var removePoint = new Element('div');
         $('diff_content').down(<%= change[:start] %>).insert({ 'before': removePoint });
 
         <% change[:times].times do %>
-          removePoint.insert({ 'bottom': $('diff_content').down(<%= change[:start] + 1 %>) });
+          removePoint.insert({ 'bottom': $('diff_content').immediateDescendants()[<%= change[:start] + 1 %>] });
         <% end %>
 
-        Effect.ScrollTo(removePoint, { duration: <%= @delay %>, offset: -30, afterFinish: function()
+        var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
+        Effect.ScrollTo/*Bottom*/(removePoint, { duration: (scrollToDistance(removePoint, scrollOffset) / (diffContentFontSize * <%= @lps %>)), offset: scrollOffset, afterFinish: function()
         {
-          removePoint.blindUp({ duration: <%= @delay %>, afterFinish: function()
+          var blindDuration = (blindDistance(removePoint) / (diffContentFontSize * <%= @lps %>));
+          removePoint.blindUp({ duration: blindDuration, afterFinish: function()
           {
             removePoint.remove();
             if(queue.length > 0) (queue.shift())();
           } });
+/*
+          if(blindDistance(removePoint) > document.viewport.getHeight())
+          {
+            Effect.ScrollTo(removePoint, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDuration - 0.5 < 0 ? 0 : 0.5) });
+          }*/
         } });
       });
     <% end %>

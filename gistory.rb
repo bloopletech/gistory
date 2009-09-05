@@ -99,6 +99,7 @@ end
 
 get '/commit/*' do
   @delay = 1
+  @lps = 10
   @repo_dir = repo_dir
   @commits = commits
   @commit_index = params[:splat].first.to_i
@@ -172,7 +173,7 @@ helpers do
   end
 
   def j(str)
-    str.to_s.gsub('\\', '\\\\\\\\').gsub(/[&"><]/) { |special| { '&' => '\u0026', '>' => '\u003E', '<' => '\u003C', '"' => '\"' }[special] }
+    str.to_s.gsub('\\', '\\\\\\\\').gsub(/[&"><\n\r]/) { |special| { '&' => '\u0026', '>' => '\u003E', '<' => '\u003C', '"' => '\"', "\n" => "\\n", "\r" => "\\r" }[special] }
   end
 end
 
