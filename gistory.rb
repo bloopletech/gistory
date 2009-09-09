@@ -4,6 +4,8 @@ require 'erb'
 require 'grit'
 include Grit
 
+Git.git_timeout = 60
+
 set :logging, false
 set :host, 'localhost'
 set :port, 6568
@@ -99,7 +101,8 @@ end
 
 get '/commit/*' do
   @delay = 1
-  @lps = 10
+  @lps = 2
+  @max_time = 10
   @repo_dir = repo_dir
   @commits = commits
   @commit_index = params[:splat].first.to_i
@@ -107,6 +110,7 @@ get '/commit/*' do
   @commit, @diff = commit_diff[:commit], commit_diff[:diff] 
   
   @diff_data = diff_to_html(@commit, @diff)
+#  puts @diff_data.inspect
 #  puts @diff_data[:content].inspect
 
   content_type 'text/javascript'
@@ -144,9 +148,13 @@ helpers do
         if l =~ /^(\@\@ \-(\d+),(\d+) \+(\d+),(\d+) \@\@)/
           line_offset = $4.to_i == 0 ? 1 : $4.to_i
         else
-          if l =~ /^\+/
-            changes << { :start => line_offset, :lines => "", :mode => :add } if should_change or changes.empty? or changes.last[:mode] != :add
+          if l == '\ No newline at end of file' && changes.length >= 2 && changes.last[:mode] == :add && changes[-2][:mode] == :remove &&            changes.last[:times] == 1 && changes[-2][:times] == 1
+            changes.pop
+            changes.pop
+          elsif l =~ /^\+/
+            changes << { :start => line_offset, :lines => "", :times => 0, :mode => :add } if should_change or changes.empty? or changes.last[:mode] != :add
             should_change = false
+            changes.last[:times] += 1
             lt = h(l[1..-1]).gsub(/  /, " &nbsp;")
             changes.last[:lines] << "<div>#{lt == '' ? "&nbsp;" : lt}</div>"
           elsif l =~ /^-/
@@ -179,7 +187,7 @@ end
 
 puts "Started"
 
-sleep(1)
+sleep(5)
 
 #if RUBY_PLATFORM =~ /(win|w)32$/
 #  `start http://localhost:6568/`

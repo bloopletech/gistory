@@ -8,3 +8,5 @@ h3 { padding: 0.5em; font-weight: normal; background-color: #ffffcc; }
 #diff_content { margin: 0.5em; font-size: 90%; }
 #diff_content, #diff_content div { font-family: Monaco, "Courier New", Courier, monospace; }
 #diff_content .change_line { margin-top: -1.4em; }
+
+#diff_first_line { display: none; }

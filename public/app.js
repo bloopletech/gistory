@@ -33,6 +33,6 @@ var diffContentFontSize = 0;
 
 document.observe("dom:loaded", function()
 {
-  diffContentFontSize = parseFloat($('diff_content').getStyle("fontSize"));
+  diffContentFontSize = $('diff_first_line').getHeight();
   new Ajax.Request("/commit/0", { method: 'get' });
 });

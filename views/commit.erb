@@ -25,19 +25,26 @@ queue = [];
 
         var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
         var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
-        Effect.ScrollTo(insertPoint, { duration: (scrollToDistance(insertPoint, scrollOffset) / (diffContentFontSize * <%= @lps %>)), offset: scrollOffset, afterFinish: function()
+        var insertDuration = [(scrollToDistance(insertPoint, scrollOffset) / (diffContentFontSize * <%= @lps %>)), <%= @max_time %>].min();
+        //console.log("issuing a scroll to for an add, to ", insertPoint.cumulativeOffset(), " offset by ", scrollOffset, "px taking ", insertDuration, "seconds, total page height", $$("body")[0].getHeight(), "px");
+        Effect.ScrollTo(insertPoint, { duration: insertDuration, offset: scrollOffset, afterFinish: function()
         {
           insertPoint.insert({ 'after': wrapper });
 
-          var blindDuration = (blindDistance(wrapper) / (diffContentFontSize * <%= @lps %>));
+          var blindDuration = [(blindDistance(wrapper) / (diffContentFontSize * <%= @lps %>)), <%= @max_time %>].min();
+          //console.log("issuing a blind up for a add, taking ", blindDuration, " seconds");
           wrapper.hide().blindDown({ duration: blindDuration, afterFinish: function()
           {
             wrapper.replace(wrapper.innerHTML);
-            if(queue.length > 0)(queue.shift())();
+            setTimeout(function()
+            {
+              if(queue.length > 0) (queue.shift())(); 
+            }, 750);
           } });
 
           if(blindDistance(wrapper) > document.viewport.getHeight())
           {
+            //console.log("issuing a scroll to bottom up for an add, taking ", [blindDuration - 0.5, 0].max(), " seconds, with a delay of ", (blindDistance(wrapper) - 0.5 < 0 ? 0 : 0.5), " seconds");
             Effect.ScrollToBottom(wrapper, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDistance(wrapper) - 0.5 < 0 ? 0 : 0.5) });
           }
         } });
@@ -54,14 +61,21 @@ queue = [];
         <% end %>
 
         var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
-        Effect.ScrollTo/*Bottom*/(removePoint, { duration: (scrollToDistance(removePoint, scrollOffset) / (diffContentFontSize * <%= @lps %>)), offset: scrollOffset, afterFinish: function()
+        var scrollDuration = [(scrollToDistance(removePoint, scrollOffset) / (diffContentFontSize * <%= @lps %>)), <%= @max_time %>].min();
+        //console.log("issuing a scroll to for a remove, to ", removePoint.cumulativeOffset(), " offset by ", scrollOffset, "px taking ", scrollDuration, "seconds, total page height", $$("body")[0].getHeight(), "px");        
+        Effect.ScrollTo/*Bottom*/(removePoint, { duration: scrollDuration, offset: scrollOffset, afterFinish: function()
         {
-          var blindDuration = (blindDistance(removePoint) / (diffContentFontSize * <%= @lps %>));
+          var blindDuration = [(blindDistance(removePoint) / (diffContentFontSize * <%= @lps %>)), <%= @max_time %>].min();
+          //console.log("issuing a blind up for a remove, taking ", blindDuration, " seconds");
           removePoint.blindUp({ duration: blindDuration, afterFinish: function()
           {
             removePoint.remove();
-            if(queue.length > 0) (queue.shift())();
+            setTimeout(function()
+            {
+              if(queue.length > 0) (queue.shift())(); 
+            }, 750);
           } });
+
 /*
           if(blindDistance(removePoint) > document.viewport.getHeight())
           {
@@ -76,10 +90,7 @@ queue = [];
 <% if @commit_index < @commits.length - 1 %>
   queue.push(function()
   {
-    setTimeout(function()
-    {
-      new Ajax.Request("/commit/<%= @commit_index.to_i + 1 %>", { method: 'get' });
-    }, <%= @delay * 1000 %>);
+    new Ajax.Request("/commit/<%= @commit_index.to_i + 1 %>", { method: 'get' });
   });
 <% end %>
 
