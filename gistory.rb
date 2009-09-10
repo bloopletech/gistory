@@ -103,6 +103,7 @@ get '/commit/*' do
   @delay = 1
   @lps = 2
   @max_time = 10
+  @wait_time_after_change = 0.75
   @repo_dir = repo_dir
   @commits = commits
   @commit_index = params[:splat].first.to_i

@@ -39,7 +39,7 @@ queue = [];
             setTimeout(function()
             {
               if(queue.length > 0) (queue.shift())(); 
-            }, 750);
+            }, <%= @wait_time_after_change * 1000 %>);
           } });
 
           if(blindDistance(wrapper) > document.viewport.getHeight())
@@ -73,7 +73,7 @@ queue = [];
             setTimeout(function()
             {
               if(queue.length > 0) (queue.shift())(); 
-            }, 750);
+            }, <%= @wait_time_after_change * 1000 %>);
           } });
 
 /*
