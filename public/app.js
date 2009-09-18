@@ -21,7 +21,7 @@ Effect.ScrollToBottom = function(element)
 
 function scrollToDistance(element, scrollOffset)
 {
-  return Math.abs($(element).cumulativeOffset()[1] + scrollOffset - document.viewport.getScrollOffsets().top);
+  return Math.abs(document.viewport.getScrollOffsets().top - $(element).cumulativeOffset()[1] + scrollOffset);
 }
 
 function blindDistance(element)

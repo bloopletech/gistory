@@ -101,9 +101,9 @@ end
 
 get '/commit/*' do
   @delay = 1
-  @lps = 2
+  @lps_change = 5
+  @lps_scroll = 20
   @max_time = 10
-  @wait_time_after_change = 0.75
   @repo_dir = repo_dir
   @commits = commits
   @commit_index = params[:splat].first.to_i
@@ -186,14 +186,17 @@ helpers do
   end
 end
 
-puts "Started"
+puts "Waiting to launch gistory..."
 
-sleep(5)
+Thread.new do
+  sleep(1)
 
-#if RUBY_PLATFORM =~ /(win|w)32$/
-#  `start http://localhost:6568/`
-if RUBY_PLATFORM =~ /darwin/
-  `open http://localhost:6568/`
-else
-  puts "Please open your web browser and visit http://localhost:6568/"
+  #if RUBY_PLATFORM =~ /(win|w)32$/
+  #  `start http://localhost:6568/`
+  if RUBY_PLATFORM =~ /darwin/
+    `open http://localhost:6568/`
+    puts "Launched gistory"
+  else
+    puts "Please open your web browser and visit http://localhost:6568/"
+  end
 end

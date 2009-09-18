@@ -20,31 +20,40 @@ queue = [];
       $("diff").setStyle({ 'paddingTop': $('header').getHeight() + "px" });
       queue.push(function()
       {
+        //console.log("Starting an add...");
         var wrapper = new Element('div');
-        wrapper.update("<%= j change[:lines] %>");
+        wrapper.update("<%= j change[:lines] %>").hide();
 
         var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
         var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
-        var insertDuration = [(scrollToDistance(insertPoint, scrollOffset) / (diffContentFontSize * <%= @lps %>)), <%= @max_time %>].min();
+        var insertDuration = (scrollToDistance(insertPoint, scrollOffset) / (diffContentFontSize * <%= @lps_scroll %>));
+
+        if((scrollToDistance(insertPoint, scrollOffset)) <= 0)
+        {
+          scrollOffset = 0;
+          insertDuration = 0;
+        }
+
         //console.log("issuing a scroll to for an add, to ", insertPoint.cumulativeOffset(), " offset by ", scrollOffset, "px taking ", insertDuration, "seconds, total page height", $$("body")[0].getHeight(), "px");
+
         Effect.ScrollTo(insertPoint, { duration: insertDuration, offset: scrollOffset, afterFinish: function()
         {
           insertPoint.insert({ 'after': wrapper });
 
-          var blindDuration = [(blindDistance(wrapper) / (diffContentFontSize * <%= @lps %>)), <%= @max_time %>].min();
-          //console.log("issuing a blind up for a add, taking ", blindDuration, " seconds");
-          wrapper.hide().blindDown({ duration: blindDuration, afterFinish: function()
+          var blindDuration = (blindDistance(wrapper) / (diffContentFontSize * <%= @lps_change %>));
+          //console.log("issuing a blind down for a add, taking ", blindDuration, " seconds");
+          wrapper.blindDown({ duration: blindDuration, afterFinish: function()
           {
             wrapper.replace(wrapper.innerHTML);
             setTimeout(function()
             {
               if(queue.length > 0) (queue.shift())(); 
-            }, <%= @wait_time_after_change * 1000 %>);
+            }, <%= 3 * (1000 / @lps_change.to_f) %>);
           } });
 
           if(blindDistance(wrapper) > document.viewport.getHeight())
           {
-            //console.log("issuing a scroll to bottom up for an add, taking ", [blindDuration - 0.5, 0].max(), " seconds, with a delay of ", (blindDistance(wrapper) - 0.5 < 0 ? 0 : 0.5), " seconds");
+            //console.log("issuing a scroll to bottom for an add, taking ", [blindDuration - 0.5, 0].max(), " seconds, with a delay of ", (blindDistance(wrapper) - 0.5 < 0 ? 0 : 0.5), " seconds");
             Effect.ScrollToBottom(wrapper, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDistance(wrapper) - 0.5 < 0 ? 0 : 0.5) });
           }
         } });
@@ -53,6 +62,7 @@ queue = [];
       $("diff").setStyle({ 'paddingTop': $('header').getHeight() + "px" });
       queue.push(function()
       {
+        //console.log("Starting a remove...");
         var removePoint = new Element('div');
         $('diff_content').down(<%= change[:start] %>).insert({ 'before': removePoint });
 
@@ -61,19 +71,17 @@ queue = [];
         <% end %>
 
         var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
-        var scrollDuration = [(scrollToDistance(removePoint, scrollOffset) / (diffContentFontSize * <%= @lps %>)), <%= @max_time %>].min();
+        if(removePoint.cumulativeOffset()[1] + scrollOffset < 0) scrollOffset = -(removePoint.cumulativeOffset()[1]);
+        var scrollDuration = (scrollToDistance(removePoint, scrollOffset) / (diffContentFontSize * <%= @lps_scroll %>));
         //console.log("issuing a scroll to for a remove, to ", removePoint.cumulativeOffset(), " offset by ", scrollOffset, "px taking ", scrollDuration, "seconds, total page height", $$("body")[0].getHeight(), "px");        
         Effect.ScrollTo/*Bottom*/(removePoint, { duration: scrollDuration, offset: scrollOffset, afterFinish: function()
         {
-          var blindDuration = [(blindDistance(removePoint) / (diffContentFontSize * <%= @lps %>)), <%= @max_time %>].min();
+          var blindDuration = (blindDistance(removePoint) / (diffContentFontSize * <%= @lps_change %>));
           //console.log("issuing a blind up for a remove, taking ", blindDuration, " seconds");
           removePoint.blindUp({ duration: blindDuration, afterFinish: function()
           {
             removePoint.remove();
-            setTimeout(function()
-            {
-              if(queue.length > 0) (queue.shift())(); 
-            }, <%= @wait_time_after_change * 1000 %>);
+            if(queue.length > 0) (queue.shift())(); 
           } });
 
 /*
