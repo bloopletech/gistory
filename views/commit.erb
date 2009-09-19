@@ -76,19 +76,22 @@ queue = [];
         //console.log("issuing a scroll to for a remove, to ", removePoint.cumulativeOffset(), " offset by ", scrollOffset, "px taking ", scrollDuration, "seconds, total page height", $$("body")[0].getHeight(), "px");        
         Effect.ScrollTo/*Bottom*/(removePoint, { duration: scrollDuration, offset: scrollOffset, afterFinish: function()
         {
-          var blindDuration = (blindDistance(removePoint) / (diffContentFontSize * <%= @lps_change %>));
-          //console.log("issuing a blind up for a remove, taking ", blindDuration, " seconds");
-          removePoint.blindUp({ duration: blindDuration, afterFinish: function()
+          setTimeout(function()
           {
-            removePoint.remove();
-            if(queue.length > 0) (queue.shift())(); 
-          } });
+            var blindDuration = (blindDistance(removePoint) / (diffContentFontSize * <%= @lps_change %>));
+            //console.log("issuing a blind up for a remove, taking ", blindDuration, " seconds");
+            removePoint.blindUp({ duration: blindDuration, afterFinish: function()
+            {
+              removePoint.remove();
+              if(queue.length > 0) (queue.shift())(); 
+            } });
 
-/*
-          if(blindDistance(removePoint) > document.viewport.getHeight())
-          {
-            Effect.ScrollTo(removePoint, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDuration - 0.5 < 0 ? 0 : 0.5) });
-          }*/
+  /*
+            if(blindDistance(removePoint) > document.viewport.getHeight())
+            {
+              Effect.ScrollTo(removePoint, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDuration - 0.5 < 0 ? 0 : 0.5) });
+            }*/
+          }, <%= 3 * (1000 / @lps_change.to_f) %>);
         } });
       });
     <% end %>
