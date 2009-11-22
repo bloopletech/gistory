@@ -6,7 +6,18 @@ repo_path = File.expand_path(ARGV.first)
 abort "Error: #{repo_path} does not exist" unless File.exist?(repo_path)
 
 require 'grit'
+
 Grit::Git.git_timeout = 60
+
+Grit::Actor.class_eval do
+  def name_email
+    "#{name} <#{email}>"
+  end
+  
+  def ==(other)
+    name_email == other.name_email
+  end
+end
 
 repo = begin
   Grit::Repo.new(repo_path)
@@ -54,16 +65,6 @@ require 'erb'
 set :logging, false
 set :host, 'localhost'
 set :port, 6568
-
-Grit::Actor.class_eval do
-  def name_email
-    "#{name} <#{email}>"
-  end
-  
-  def ==(other)
-    name_email == other.name_email
-  end
-end
 
 get '/' do
   @commits = commits
