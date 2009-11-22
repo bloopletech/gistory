@@ -100,7 +100,7 @@ end
 
 get '/commit/*' do
   @delay = 1
-  @lps_change = 5
+  @lps_change = 100
   @lps_scroll = 20
   @max_time = 10
   @repo_dir = repo_dir
