@@ -56,14 +56,6 @@ set :logging, false
 set :host, 'localhost'
 set :port, 6568
 
-String.class_eval do
-  def ucfirst
-    out = self
-    out[0] = out[0..0].upcase if length > 0
-    out
-  end
-end
-
 Actor.class_eval do
   def name_email
     "#{name} <#{email}>"
