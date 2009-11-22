@@ -1,29 +1,25 @@
-def supplied?(thing, thing_name)
-  while thing.nil? or thing.gsub(/\s+/, '') == ''
-    print "No #{thing_name} supplied; please enter #{thing_name}, or nothing to exit: "
-    thing = gets.chomp
-    exit if thing == ''
-  end
-  thing
-end
+abort %(Usage:
+ruby gistory.rb repo_path file_path [branch_other_than_maste]
+) unless ARGV.size.between?(2,3)
 
-repo_dir, file_name, branch = ARGV[0..3]
-
-repo_dir = supplied?(repo_dir, "repo")
-file_name = supplied?(file_name, "file")
-branch = supplied?(branch, "branch")
-
-unless File.exists?(File.expand_path(repo_dir))
-  puts "The repo you spplied doesn't exist; please check the data you supplied and try again."
-  exit
-end
+repo_path = File.expand_path(ARGV.first)
+abort "Error: #{repo_path} does not exist" unless File.exist?(repo_path)
 
 require 'grit'
 include Grit
 Git.git_timeout = 60
 
-def get_commits(repo, file_name, branch)
-  log_data = repo.git.log({ :pretty => 'raw' }, "--follow", '--topo-order', '-p', branch, "--", file_name)
+repo = begin
+  Repo.new(repo_path)
+rescue InvalidGitRepositoryError
+  abort "Error: #{repo_path} is not a git repo"
+end
+
+puts "Loading commits..."
+commits = begin
+  file = ARGV[1]
+  branch = ARGV[2] || 'master'
+  log_data = repo.git.log({ :pretty => 'raw' }, "--follow", '--topo-order', '-p', branch, "--", file)
   commit_diff_data = []
   log_data.split("\n").each do |c|
     if c =~ /^commit /
@@ -47,10 +43,6 @@ def get_commits(repo, file_name, branch)
     { :commit => Commit.list_from_string(repo, commit.join("\n"))[0], :diff => Grit::Diff.list_from_string(repo, diff.join("\n"))[0] }
   end.reverse
 end
-
-repo = Repo.new(File.expand_path(repo_dir))
-puts "Loading commits..."
-commits = get_commits(repo, file_name, branch)
 
 abort %(Error: Couldn't find any commits.
 Are you sure this is a git repo and the file exists?) if commits.empty?
@@ -99,7 +91,7 @@ get '/commit/*' do
   @lps_change = 100
   @lps_scroll = 20
   @max_time = 10
-  @repo_dir = repo_dir
+  @repo_dir = repo_path
   @commits = commits
   @commit_index = params[:splat].first.to_i
   commit_diff = commits[@commit_index]
