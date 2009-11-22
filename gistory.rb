@@ -6,12 +6,11 @@ repo_path = File.expand_path(ARGV.first)
 abort "Error: #{repo_path} does not exist" unless File.exist?(repo_path)
 
 require 'grit'
-include Grit
-Git.git_timeout = 60
+Grit::Git.git_timeout = 60
 
 repo = begin
-  Repo.new(repo_path)
-rescue InvalidGitRepositoryError
+  Grit::Repo.new(repo_path)
+rescue Grit::InvalidGitRepositoryError
   abort "Error: #{repo_path} is not a git repo"
 end
 
@@ -40,7 +39,7 @@ commits = begin
     end
     diff = c[(commit.length)..-1]
 
-    { :commit => Commit.list_from_string(repo, commit.join("\n"))[0], :diff => Grit::Diff.list_from_string(repo, diff.join("\n"))[0] }
+    { :commit => Grit::Commit.list_from_string(repo, commit.join("\n"))[0], :diff => Grit::Diff.list_from_string(repo, diff.join("\n"))[0] }
   end.reverse
 end
 
@@ -56,7 +55,7 @@ set :logging, false
 set :host, 'localhost'
 set :port, 6568
 
-Actor.class_eval do
+Grit::Actor.class_eval do
   def name_email
     "#{name} <#{email}>"
   end
