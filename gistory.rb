@@ -56,7 +56,7 @@ set :logging, false
 set :host, 'localhost'
 set :port, 6568
 
-class String
+String.class_eval do
   def ucfirst
     out = self
     out[0] = out[0..0].upcase if length > 0
@@ -64,7 +64,7 @@ class String
   end
 end
 
-class Actor
+Actor.class_eval do
   def name_email
     "#{name} <#{email}>"
   end
@@ -74,7 +74,7 @@ class Actor
   end
 end
 
-class Time
+Time.class_eval do
   def nice
     strftime("%A %d/%m/%Y %I:%M %p")
   end
