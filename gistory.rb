@@ -51,10 +51,10 @@ end
 repo = Repo.new(File.expand_path(repo_dir))
 puts "Loading commits..."
 commits = get_commits(repo, file_name, branch)
-if commits.empty?
-  puts "No commits found for supplied data; pleast check the data you supplied and try again."
-  exit
-end
+
+abort %(Error: Couldn't find any commits.
+Are you sure this is a git repo and the file exists?) if commits.empty?
+
 puts "Loaded commits"
 
 require 'sinatra'
