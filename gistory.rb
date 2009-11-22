@@ -1,22 +1,3 @@
-require 'sinatra'
-require 'erb'
-require 'grit'
-include Grit
-
-Git.git_timeout = 60
-
-set :logging, false
-set :host, 'localhost'
-set :port, 6568
-
-class String
-  def ucfirst
-    out = self
-    out[0] = out[0..0].upcase if length > 0
-    out
-  end
-end
-
 def supplied?(thing, thing_name)
   while thing.nil? or thing.gsub(/\s+/, '') == ''
     print "No #{thing_name} supplied; please enter #{thing_name}, or nothing to exit: "
@@ -25,6 +6,21 @@ def supplied?(thing, thing_name)
   end
   thing
 end
+
+repo_dir, file_name, branch = ARGV[0..3]
+
+repo_dir = supplied?(repo_dir, "repo")
+file_name = supplied?(file_name, "file")
+branch = supplied?(branch, "branch")
+
+unless File.exists?(File.expand_path(repo_dir))
+  puts "The repo you spplied doesn't exist; please check the data you supplied and try again."
+  exit
+end
+
+require 'grit'
+include Grit
+Git.git_timeout = 60
 
 def get_commits(repo, file_name, branch)
   log_data = repo.git.log({ :pretty => 'raw' }, "--follow", '--topo-order', '-p', branch, "--", file_name)
@@ -52,20 +48,29 @@ def get_commits(repo, file_name, branch)
   end.reverse
 end
 
-repo_dir, file_name, branch = ARGV[0..3]
-
-repo_dir = supplied?(repo_dir, "repo")
-file_name = supplied?(file_name, "file")
-branch = supplied?(branch, "branch")
-
-unless File.exists?(File.expand_path(repo_dir))
-  puts "The repo you spplied doesn't exist; please check the data you supplied and try again."
+repo = Repo.new(File.expand_path(repo_dir))
+puts "Loading commits..."
+commits = get_commits(repo, file_name, branch)
+if commits.empty?
+  puts "No commits found for supplied data; pleast check the data you supplied and try again."
   exit
 end
+puts "Loaded commits"
 
-repo = Repo.new(File.expand_path(repo_dir))
+require 'sinatra'
+require 'erb'
 
-puts "Loading commits..."
+set :logging, false
+set :host, 'localhost'
+set :port, 6568
+
+class String
+  def ucfirst
+    out = self
+    out[0] = out[0..0].upcase if length > 0
+    out
+  end
+end
 
 class Actor
   def name_email
@@ -82,15 +87,6 @@ class Time
     strftime("%A %d/%m/%Y %I:%M %p")
   end
 end
-
-commits = get_commits(repo, file_name, branch)
-
-if commits.empty?
-  puts "No commits found for supplied data; pleast check the data you supplied and try again."
-  exit
-end
-
-puts "Loaded commits"
 
 get '/' do
   @commits = commits
