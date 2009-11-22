@@ -15,7 +15,7 @@ rescue InvalidGitRepositoryError
   abort "Error: #{repo_path} is not a git repo"
 end
 
-puts "Loading commits..."
+$stderr.puts "Loading commits ..."
 commits = begin
   file = ARGV[1]
   branch = ARGV[2] || 'master'
@@ -47,7 +47,7 @@ end
 abort %(Error: Couldn't find any commits.
 Are you sure this is a git repo and the file exists?) if commits.empty?
 
-puts "Loaded commits"
+$stderr.puts "Loaded commits"
 
 require 'sinatra'
 require 'erb'
@@ -173,7 +173,7 @@ helpers do
   end
 end
 
-puts "Waiting to launch gistory..."
+$stderr.puts "Waiting to launch gistory..."
 
 Thread.new do
   sleep(1)
@@ -182,7 +182,7 @@ Thread.new do
   #  `start http://localhost:6568/`
   if RUBY_PLATFORM =~ /darwin/
     `open http://localhost:6568/`
-    puts "Launched gistory"
+    $stderr.puts "Launched gistory"
   else
     puts "Please open your web browser and visit http://localhost:6568/"
   end
