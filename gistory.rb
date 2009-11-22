@@ -119,8 +119,9 @@ get '/show/:commit/*' do
 end
 
 helpers do
-  include Rack::Utils
-  alias_method :h, :escape_html
+  def h(content)
+    Rack::Utils.escape_html(content)
+  end
   
   def diff_to_html(commit, diff)
     if diff.diff =~ /^rename/
