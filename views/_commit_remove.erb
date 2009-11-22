@@ -1,0 +1,35 @@
+$("diff").setStyle({ 'paddingTop': $('header').getHeight() + "px" });
+queue.push(function()
+{
+  //console.log("Starting a remove...");
+  var removePoint = new Element('div');
+  $('diff_content').down(<%= change[:start] %>).insert({ 'before': removePoint });
+
+  <% change[:times].times do %>
+    removePoint.insert({ 'bottom': $('diff_content').immediateDescendants()[<%= change[:start] + 1 %>] });
+  <% end %>
+
+  var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
+  if(removePoint.cumulativeOffset()[1] + scrollOffset < 0) scrollOffset = -(removePoint.cumulativeOffset()[1]);
+  var scrollDuration = (scrollToDistance(removePoint, scrollOffset) / (diffContentFontSize * <%= @lps_scroll %>));
+  //console.log("issuing a scroll to for a remove, to ", removePoint.cumulativeOffset(), " offset by ", scrollOffset, "px taking ", scrollDuration, "seconds, total page height", $$("body")[0].getHeight(), "px");        
+  Effect.ScrollTo/*Bottom*/(removePoint, { duration: scrollDuration, offset: scrollOffset, afterFinish: function()
+  {
+    setTimeout(function()
+    {
+      var blindDuration = (blindDistance(removePoint) / (diffContentFontSize * <%= @lps_change %>));
+      //console.log("issuing a blind up for a remove, taking ", blindDuration, " seconds");
+      removePoint.blindUp({ duration: blindDuration, afterFinish: function()
+      {
+        removePoint.remove();
+        if(queue.length > 0) (queue.shift())(); 
+      } });
+
+/*
+      if(blindDistance(removePoint) > document.viewport.getHeight())
+      {
+        Effect.ScrollTo(removePoint, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDuration - 0.5 < 0 ? 0 : 0.5) });
+      }*/
+    }, <%= 3 * (1000 / @lps_change.to_f) %>);
+  } });
+});

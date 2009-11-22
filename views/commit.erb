@@ -17,83 +17,9 @@ queue = [];
   <% @diff_data[:content].each do |change| %>
     <% if false && @diff_data[:type] == 'change' %>
     <% elsif change[:mode] == :add %>
-      $("diff").setStyle({ 'paddingTop': $('header').getHeight() + "px" });
-      queue.push(function()
-      {
-        //console.log("Starting an add...");
-        var wrapper = new Element('div');
-        wrapper.update("<%= j change[:lines] %>").hide();
-
-        var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
-        var insertPoint = $('diff_content').down(<%= change[:start] - 1 %>);
-        var insertDuration = (scrollToDistance(insertPoint, scrollOffset) / (diffContentFontSize * <%= @lps_scroll %>));
-
-        if((scrollToDistance(insertPoint, scrollOffset)) <= 0)
-        {
-          scrollOffset = 0;
-          insertDuration = 0;
-        }
-
-        //console.log("issuing a scroll to for an add, to ", insertPoint.cumulativeOffset(), " offset by ", scrollOffset, "px taking ", insertDuration, "seconds, total page height", $$("body")[0].getHeight(), "px");
-
-        Effect.ScrollTo(insertPoint, { duration: insertDuration, offset: scrollOffset, afterFinish: function()
-        {
-          insertPoint.insert({ 'after': wrapper });
-
-          var blindDuration = (blindDistance(wrapper) / (diffContentFontSize * <%= @lps_change %>));
-          //console.log("issuing a blind down for a add, taking ", blindDuration, " seconds");
-          wrapper.blindDown({ duration: blindDuration, afterFinish: function()
-          {
-            wrapper.replace(wrapper.innerHTML);
-            setTimeout(function()
-            {
-              if(queue.length > 0) (queue.shift())(); 
-            }, <%= 3 * (1000 / @lps_change.to_f) %>);
-          } });
-
-          if(blindDistance(wrapper) > document.viewport.getHeight())
-          {
-            //console.log("issuing a scroll to bottom for an add, taking ", [blindDuration - 0.5, 0].max(), " seconds, with a delay of ", (blindDistance(wrapper) - 0.5 < 0 ? 0 : 0.5), " seconds");
-            Effect.ScrollToBottom(wrapper, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDistance(wrapper) - 0.5 < 0 ? 0 : 0.5) });
-          }
-        } });
-      });
+      <%= erb :_commit_add, :layout => false, :locals => {:change => change} %>
     <% elsif change[:mode] == :remove %>
-      $("diff").setStyle({ 'paddingTop': $('header').getHeight() + "px" });
-      queue.push(function()
-      {
-        //console.log("Starting a remove...");
-        var removePoint = new Element('div');
-        $('diff_content').down(<%= change[:start] %>).insert({ 'before': removePoint });
-
-        <% change[:times].times do %>
-          removePoint.insert({ 'bottom': $('diff_content').immediateDescendants()[<%= change[:start] + 1 %>] });
-        <% end %>
-
-        var scrollOffset = -(diffContentFontSize * 3) - $('header').getHeight();
-        if(removePoint.cumulativeOffset()[1] + scrollOffset < 0) scrollOffset = -(removePoint.cumulativeOffset()[1]);
-        var scrollDuration = (scrollToDistance(removePoint, scrollOffset) / (diffContentFontSize * <%= @lps_scroll %>));
-        //console.log("issuing a scroll to for a remove, to ", removePoint.cumulativeOffset(), " offset by ", scrollOffset, "px taking ", scrollDuration, "seconds, total page height", $$("body")[0].getHeight(), "px");        
-        Effect.ScrollTo/*Bottom*/(removePoint, { duration: scrollDuration, offset: scrollOffset, afterFinish: function()
-        {
-          setTimeout(function()
-          {
-            var blindDuration = (blindDistance(removePoint) / (diffContentFontSize * <%= @lps_change %>));
-            //console.log("issuing a blind up for a remove, taking ", blindDuration, " seconds");
-            removePoint.blindUp({ duration: blindDuration, afterFinish: function()
-            {
-              removePoint.remove();
-              if(queue.length > 0) (queue.shift())(); 
-            } });
-
-  /*
-            if(blindDistance(removePoint) > document.viewport.getHeight())
-            {
-              Effect.ScrollTo(removePoint, { duration: [blindDuration - 0.5, 0].max(), delay: (blindDuration - 0.5 < 0 ? 0 : 0.5) });
-            }*/
-          }, <%= 3 * (1000 / @lps_change.to_f) %>);
-        } });
-      });
+      <%= erb :_commit_remove, :layout => false, :locals => {:change => change} %>
     <% end %>
   <% end %>
 <% end %>
