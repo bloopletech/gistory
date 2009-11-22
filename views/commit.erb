@@ -13,13 +13,9 @@ queue = [];
     } });
   });
 <% end %>
-<% if @diff_data[:content] %>
-  <% @diff_data[:content].
-       select {|c| c[:mode] == :add || c[:mode] == :remove }.
-       reject {|c| c[:type] == "change"}. # is binary
-       each do |change| %>
-    <%= erb :"_commit_#{change[:mode]}", :layout => false, :locals => {:change => change} %>
-  <% end %>
+
+<% for change in @textual_add_remove_changes %>
+  <%= erb :"_commit_#{change[:mode]}", :layout => false, :locals => {:change => change} %>
 <% end %>
 
 <% if @commit_index < @commits.length - 1 %>
