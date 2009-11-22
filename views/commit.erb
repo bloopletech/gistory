@@ -15,8 +15,8 @@ queue = [];
 <% end %>
 <% if @diff_data[:content] %>
   <% @diff_data[:content].each do |change| %>
-    <% if false && @diff_data[:type] == 'change' %>
-    <% elsif change[:mode] == :add %>
+    <% next if change[:type] == "change" # is binary %>
+    <% if change[:mode] == :add %>
       <%= erb :_commit_add, :layout => false, :locals => {:change => change} %>
     <% elsif change[:mode] == :remove %>
       <%= erb :_commit_remove, :layout => false, :locals => {:change => change} %>
