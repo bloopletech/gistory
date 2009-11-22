@@ -1,0 +1,521 @@
+commit 238e826e16ce33940c8a0112414c088eef7344c4
+tree 647185d180747479729e3c7f0468b4018ff79cd3
+parent 3763e8cd628ca8455ee95743397e50e191b5ec7c
+author Brenton Fletcher <bloopletech@Yotsuba.local> 1253291635 +0930
+committer Brenton Fletcher <bloopletech@Yotsuba.local> 1253291635 +0930
+
+    Fix rendering bugs, make start-up a bit nicer
+
+diff --git a/gistory.rb b/gistory.rb
+index 63cc11d..f532092 100644
+--- a/gistory.rb
++++ b/gistory.rb
+@@ -101,9 +101,9 @@ end
+ 
+ get '/commit/*' do
+   @delay = 1
+-  @lps = 2
++  @lps_change = 5
++  @lps_scroll = 20
+   @max_time = 10
+-  @wait_time_after_change = 0.75
+   @repo_dir = repo_dir
+   @commits = commits
+   @commit_index = params[:splat].first.to_i
+@@ -186,14 +186,17 @@ helpers do
+   end
+ end
+ 
+-puts "Started"
++puts "Waiting to launch gistory..."
+ 
+-sleep(5)
++Thread.new do
++  sleep(1)
+ 
+-#if RUBY_PLATFORM =~ /(win|w)32$/
+-#  `start http://localhost:6568/`
+-if RUBY_PLATFORM =~ /darwin/
+-  `open http://localhost:6568/`
+-else
+-  puts "Please open your web browser and visit http://localhost:6568/"
++  #if RUBY_PLATFORM =~ /(win|w)32$/
++  #  `start http://localhost:6568/`
++  if RUBY_PLATFORM =~ /darwin/
++    `open http://localhost:6568/`
++    puts "Launched gistory"
++  else
++    puts "Please open your web browser and visit http://localhost:6568/"
++  end
+ end
+\ No newline at end of file
+
+commit 3763e8cd628ca8455ee95743397e50e191b5ec7c
+tree 879cd95acf6739da14ca957809a5a67d291c42f9
+parent 5bc99196c5b9bc5174d3748b5f3629ba5bd917a1
+author Brenton Fletcher <bloopletech@BrentonsComputer.local> 1252573744 +0930
+committer Brenton Fletcher <bloopletech@BrentonsComputer.local> 1252573744 +0930
+
+    Move wait after change delay to a variable
+
+diff --git a/gistory.rb b/gistory.rb
+index 66fb8d5..63cc11d 100644
+--- a/gistory.rb
++++ b/gistory.rb
+@@ -103,6 +103,7 @@ get '/commit/*' do
+   @delay = 1
+   @lps = 2
+   @max_time = 10
++  @wait_time_after_change = 0.75
+   @repo_dir = repo_dir
+   @commits = commits
+   @commit_index = params[:splat].first.to_i
+
+commit 5bc99196c5b9bc5174d3748b5f3629ba5bd917a1
+tree e4dd6fa2671209c889d4a3e4ba0f7a449823b5ca
+parent 30f3a829eee39346060627db628370be47328010
+author Brenton Fletcher <bloopletech@BrentonsComputer.local> 1252502033 +0930
+committer Brenton Fletcher <bloopletech@BrentonsComputer.local> 1252502033 +0930
+
+    FIx bug in diff code, improve animations
+
+diff --git a/gistory.rb b/gistory.rb
+index f41a4b6..66fb8d5 100644
+--- a/gistory.rb
++++ b/gistory.rb
+@@ -4,6 +4,8 @@ require 'erb'
+ require 'grit'
+ include Grit
+ 
++Git.git_timeout = 60
++
+ set :logging, false
+ set :host, 'localhost'
+ set :port, 6568
+@@ -99,7 +101,8 @@ end
+ 
+ get '/commit/*' do
+   @delay = 1
+-  @lps = 10
++  @lps = 2
++  @max_time = 10
+   @repo_dir = repo_dir
+   @commits = commits
+   @commit_index = params[:splat].first.to_i
+@@ -107,6 +110,7 @@ get '/commit/*' do
+   @commit, @diff = commit_diff[:commit], commit_diff[:diff] 
+   
+   @diff_data = diff_to_html(@commit, @diff)
++#  puts @diff_data.inspect
+ #  puts @diff_data[:content].inspect
+ 
+   content_type 'text/javascript'
+@@ -144,9 +148,13 @@ helpers do
+         if l =~ /^(\@\@ \-(\d+),(\d+) \+(\d+),(\d+) \@\@)/
+           line_offset = $4.to_i == 0 ? 1 : $4.to_i
+         else
+-          if l =~ /^\+/
+-            changes << { :start => line_offset, :lines => "", :mode => :add } if should_change or changes.empty? or changes.last[:mode] != :add
++          if l == '\ No newline at end of file' && changes.length >= 2 && changes.last[:mode] == :add && changes[-2][:mode] == :remove &&            changes.last[:times] == 1 && changes[-2][:times] == 1
++            changes.pop
++            changes.pop
++          elsif l =~ /^\+/
++            changes << { :start => line_offset, :lines => "", :times => 0, :mode => :add } if should_change or changes.empty? or changes.last[:mode] != :add
+             should_change = false
++            changes.last[:times] += 1
+             lt = h(l[1..-1]).gsub(/  /, " &nbsp;")
+             changes.last[:lines] << "<div>#{lt == '' ? "&nbsp;" : lt}</div>"
+           elsif l =~ /^-/
+@@ -179,7 +187,7 @@ end
+ 
+ puts "Started"
+ 
+-sleep(1)
++sleep(5)
+ 
+ #if RUBY_PLATFORM =~ /(win|w)32$/
+ #  `start http://localhost:6568/`
+
+commit 30f3a829eee39346060627db628370be47328010
+tree d09266d9945b4281c8affb18e21bbb5bce32d53c
+parent c210ecd284db1ddeb3a491919b58615702e1151e
+author Brenton Fletcher <bloopletech@BrentonsComputer.local> 1252172720 +0930
+committer Brenton Fletcher <bloopletech@BrentonsComputer.local> 1252172720 +0930
+
+    Change animations to use speed instead of duration, other improvements
+
+diff --git a/gistory.rb b/gistory.rb
+index 625b5ee..f41a4b6 100644
+--- a/gistory.rb
++++ b/gistory.rb
+@@ -99,6 +99,7 @@ end
+ 
+ get '/commit/*' do
+   @delay = 1
++  @lps = 10
+   @repo_dir = repo_dir
+   @commits = commits
+   @commit_index = params[:splat].first.to_i
+@@ -172,7 +173,7 @@ helpers do
+   end
+ 
+   def j(str)
+-    str.to_s.gsub('\\', '\\\\\\\\').gsub(/[&"><]/) { |special| { '&' => '\u0026', '>' => '\u003E', '<' => '\u003C', '"' => '\"' }[special] }
++    str.to_s.gsub('\\', '\\\\\\\\').gsub(/[&"><\n\r]/) { |special| { '&' => '\u0026', '>' => '\u003E', '<' => '\u003C', '"' => '\"', "\n" => "\\n", "\r" => "\\r" }[special] }
+   end
+ end
+ 
+
+commit c3cb5304ee4f37c3c7ce002b785e747f859f7986
+tree 86b70c7f077a6ec146b3441b32c51cc27d317c5c
+parent 30f24f03398a821492fb4612ee7c4dfc7d4aba1c
+author Brenton Fletcher <bloopletech@BrentonsComputer.local> 1251725748 +0930
+committer Brenton Fletcher <bloopletech@BrentonsComputer.local> 1251725748 +0930
+
+    Rename main file
+
+diff --git a/single_file_gistory.rb b/gistory.rb
+similarity index 100%
+rename from single_file_gistory.rb
+rename to gistory.rb
+
+commit 30f24f03398a821492fb4612ee7c4dfc7d4aba1c
+tree 07a76aededc001ae71fcd1e6d7cb5d5f55a0de65
+parent b2ee5153ef6563ea2efd2fa0b0078c4e20a8d787
+author Brenton Fletcher <bloopletech@BrentonsComputer.local> 1251725690 +0930
+committer Brenton Fletcher <bloopletech@BrentonsComputer.local> 1251725690 +0930
+
+    Fix diffing / positioning bugs, change effect used, cleanup error messages and allow info to by typed in if not supplied
+
+diff --git a/single_file_gistory.rb b/single_file_gistory.rb
+index 7151e72..625b5ee 100644
+--- a/single_file_gistory.rb
++++ b/single_file_gistory.rb
+@@ -4,6 +4,10 @@ require 'erb'
+ require 'grit'
+ include Grit
+ 
++set :logging, false
++set :host, 'localhost'
++set :port, 6568
++
+ class String
+   def ucfirst
+     out = self
+@@ -13,10 +17,12 @@ class String
+ end
+ 
+ def supplied?(thing, thing_name)
+-  if thing.nil? or thing.gsub(/\s+/, '') == ''
+-    puts "No #{thing_name} supplied"
+-    exit
++  while thing.nil? or thing.gsub(/\s+/, '') == ''
++    print "No #{thing_name} supplied; please enter #{thing_name}, or nothing to exit: "
++    thing = gets.chomp
++    exit if thing == ''
+   end
++  thing
+ end
+ 
+ def get_commits(repo, file_name, branch)
+@@ -47,9 +53,14 @@ end
+ 
+ repo_dir, file_name, branch = ARGV[0..3]
+ 
+-supplied?(repo_dir, "repo")
+-supplied?(file_name, "file")
+-supplied?(branch, "branch")
++repo_dir = supplied?(repo_dir, "repo")
++file_name = supplied?(file_name, "file")
++branch = supplied?(branch, "branch")
++
++unless File.exists?(File.expand_path(repo_dir))
++  puts "The repo you spplied doesn't exist; please check the data you supplied and try again."
++  exit
++end
+ 
+ repo = Repo.new(File.expand_path(repo_dir))
+ 
+@@ -73,6 +84,11 @@ end
+ 
+ commits = get_commits(repo, file_name, branch)
+ 
++if commits.empty?
++  puts "No commits found for supplied data; pleast check the data you supplied and try again."
++  exit
++end
++
+ puts "Loaded commits"
+ 
+ get '/' do
+@@ -82,12 +98,12 @@ get '/' do
+ end
+ 
+ get '/commit/*' do
++  @delay = 1
+   @repo_dir = repo_dir
+   @commits = commits
+   @commit_index = params[:splat].first.to_i
+   commit_diff = commits[@commit_index]
+-  @commit, @diff = commit_diff[:commit], commit_diff[:diff]
+-  puts @commit.sha  
++  @commit, @diff = commit_diff[:commit], commit_diff[:diff] 
+   
+   @diff_data = diff_to_html(@commit, @diff)
+ #  puts @diff_data[:content].inspect
+@@ -107,46 +123,50 @@ helpers do
+   
+   def diff_to_html(commit, diff)
+     if diff.diff =~ /^rename/
+-      { :type => 'rename', :message => diff.diff.ucfirst, :content => nil }
++      { :type => 'rename', :message => diff.diff.ucfirst.gsub("\n", " => "), :content => nil }
+     elsif diff.diff =~ /^Binary/
+       if diff.new_file
+-        { :type => 'new', :message => "Created binary file <a href='/show/#{commit.sha}/#{h diff.b_path}'>#{h diff.b_path}</a>", :content => nil }
++        { :type => 'new', :message => "Created binary file #{h diff.b_path}", :content => nil }
+       elsif diff.deleted_file
+         { :type => 'delete', :message => "Deleted binary file #{h diff.a_path}", :content => nil }
+       else
+-        { :type => 'change', :message => "Changed binary file <a href='/show/#{commit.sha}/#{h diff.a_path}'>#{h diff.a_path}</a>", :content => nil }
++        { :type => 'change', :message => "Changed binary file #{h diff.a_path}", :content => nil }
+       end
+     else
+-      puts diff.diff
++      #puts diff.diff
+       content_lines = diff.diff.split(/\n/)[2..-1]
+       line_offset = 1
+       changes = []
++      should_change = false
+       content_lines.each do |l|
+-        puts "line_offset: #{line_offset}, l: #{l}"
++        #puts "line_offset: #{line_offset}, l: #{l}"
+         if l =~ /^(\@\@ \-(\d+),(\d+) \+(\d+),(\d+) \@\@)/
+-          line_offset = $2.to_i == 0 ? 1 : $2.to_i
++          line_offset = $4.to_i == 0 ? 1 : $4.to_i
+         else
+           if l =~ /^\+/
+-            changes << { :start => line_offset, :lines => "", :mode => :add } if changes.empty? or changes.last[:mode] != :add
+-            changes.last[:mode] = :add
+-            lt = h(l[1..-1]).gsub(' ', "&nbsp;")
++            changes << { :start => line_offset, :lines => "", :mode => :add } if should_change or changes.empty? or changes.last[:mode] != :add
++            should_change = false
++            lt = h(l[1..-1]).gsub(/  /, " &nbsp;")
+             changes.last[:lines] << "<div>#{lt == '' ? "&nbsp;" : lt}</div>"
+           elsif l =~ /^-/
+-            changes << { :start => line_offset, :times => 0, :mode => :remove } if changes.empty? or changes.last[:mode] != :remove
++            changes << { :start => line_offset, :times => 0, :mode => :remove } if should_change or changes.empty? or changes.last[:mode] != :remove
++            should_change = false
+             changes.last[:times] += 1
+             line_offset -= 1
++          else
++            should_change = true
+           end
+           line_offset += 1
+         end
+       end
+-      puts changes.inspect
++      #puts changes.inspect
+ 
+       if diff.new_file
+-        { :type => 'new', :message => "Created file <a href='/show/#{commit.sha}/#{h diff.b_path}'>#{h diff.b_path}</a>", :content => changes }
++        { :type => 'new', :message => "Created file #{h diff.b_path}", :content => changes }
+       elsif diff.deleted_file
+         { :type => 'delete', :message => "Deleted file #{diff.a_path}", :content => changes }
+       else
+-        { :type => 'change', :message => "Changed file <a href='/show/#{commit.sha}/#{h diff.a_path}'>#{diff.a_path}</a>", :content => changes }
++        { :type => 'change', :message => "Changed file #{diff.a_path}", :content => changes }
+       end
+     end
+   end
+@@ -156,4 +176,14 @@ helpers do
+   end
+ end
+ 
+-puts "Started"
+\ No newline at end of file
++puts "Started"
++
++sleep(1)
++
++#if RUBY_PLATFORM =~ /(win|w)32$/
++#  `start http://localhost:6568/`
++if RUBY_PLATFORM =~ /darwin/
++  `open http://localhost:6568/`
++else
++  puts "Please open your web browser and visit http://localhost:6568/"
++end
+\ No newline at end of file
+
+commit b2ee5153ef6563ea2efd2fa0b0078c4e20a8d787
+tree e19da9a1b9b63dbf0e00d42f72e6dec5a923c987
+author Brenton Fletcher <bloopletech@BrentonsComputer.local> 1251716784 +0930
+committer Brenton Fletcher <bloopletech@BrentonsComputer.local> 1251716784 +0930
+
+    Initial Commit
+
+diff --git a/single_file_gistory.rb b/single_file_gistory.rb
+new file mode 100644
+index 0000000..7151e72
+--- /dev/null
++++ b/single_file_gistory.rb
+@@ -0,0 +1,159 @@
++require 'rubygems'
++require 'sinatra'
++require 'erb'
++require 'grit'
++include Grit
++
++class String
++  def ucfirst
++    out = self
++    out[0] = out[0..0].upcase if length > 0
++    out
++  end
++end
++
++def supplied?(thing, thing_name)
++  if thing.nil? or thing.gsub(/\s+/, '') == ''
++    puts "No #{thing_name} supplied"
++    exit
++  end
++end
++
++def get_commits(repo, file_name, branch)
++  log_data = repo.git.log({ :pretty => 'raw' }, "--follow", '--topo-order', '-p', branch, "--", file_name)
++  commit_diff_data = []
++  log_data.split("\n").each do |c|
++    if c =~ /^commit /
++      commit_diff_data << [c]
++    else
++      commit_diff_data.last << c
++    end
++  end
++
++  commit_diff_data.map do |c|
++    commit = []
++    0.upto(c.length) do |i|
++      if c[i] !~ /^diff/
++        commit << c[i]
++      else
++        break
++      end
++    end
++    diff = c[(commit.length)..-1]
++
++    { :commit => Commit.list_from_string(repo, commit.join("\n"))[0], :diff => Grit::Diff.list_from_string(repo, diff.join("\n"))[0] }
++  end.reverse
++end
++
++repo_dir, file_name, branch = ARGV[0..3]
++
++supplied?(repo_dir, "repo")
++supplied?(file_name, "file")
++supplied?(branch, "branch")
++
++repo = Repo.new(File.expand_path(repo_dir))
++
++puts "Loading commits..."
++
++class Actor
++  def name_email
++    "#{name} <#{email}>"
++  end
++  
++  def ==(other)
++    name_email == other.name_email
++  end
++end
++
++class Time
++  def nice
++    strftime("%A %d/%m/%Y %I:%M %p")
++  end
++end
++
++commits = get_commits(repo, file_name, branch)
++
++puts "Loaded commits"
++
++get '/' do
++  @commits = commits
++
++  erb :index
++end
++
++get '/commit/*' do
++  @repo_dir = repo_dir
++  @commits = commits
++  @commit_index = params[:splat].first.to_i
++  commit_diff = commits[@commit_index]
++  @commit, @diff = commit_diff[:commit], commit_diff[:diff]
++  puts @commit.sha  
++  
++  @diff_data = diff_to_html(@commit, @diff)
++#  puts @diff_data[:content].inspect
++
++  content_type 'text/javascript'
++  erb :commit, :layout => false
++end
++
++get '/show/:commit/*' do
++  blob = (repo.commit(params[:commit]).tree / params[:splat].first)
++  blob.data
++end
++
++helpers do
++  include Rack::Utils
++  alias_method :h, :escape_html
++  
++  def diff_to_html(commit, diff)
++    if diff.diff =~ /^rename/
++      { :type => 'rename', :message => diff.diff.ucfirst, :content => nil }
++    elsif diff.diff =~ /^Binary/
++      if diff.new_file
++        { :type => 'new', :message => "Created binary file <a href='/show/#{commit.sha}/#{h diff.b_path}'>#{h diff.b_path}</a>", :content => nil }
++      elsif diff.deleted_file
++        { :type => 'delete', :message => "Deleted binary file #{h diff.a_path}", :content => nil }
++      else
++        { :type => 'change', :message => "Changed binary file <a href='/show/#{commit.sha}/#{h diff.a_path}'>#{h diff.a_path}</a>", :content => nil }
++      end
++    else
++      puts diff.diff
++      content_lines = diff.diff.split(/\n/)[2..-1]
++      line_offset = 1
++      changes = []
++      content_lines.each do |l|
++        puts "line_offset: #{line_offset}, l: #{l}"
++        if l =~ /^(\@\@ \-(\d+),(\d+) \+(\d+),(\d+) \@\@)/
++          line_offset = $2.to_i == 0 ? 1 : $2.to_i
++        else
++          if l =~ /^\+/
++            changes << { :start => line_offset, :lines => "", :mode => :add } if changes.empty? or changes.last[:mode] != :add
++            changes.last[:mode] = :add
++            lt = h(l[1..-1]).gsub(' ', "&nbsp;")
++            changes.last[:lines] << "<div>#{lt == '' ? "&nbsp;" : lt}</div>"
++          elsif l =~ /^-/
++            changes << { :start => line_offset, :times => 0, :mode => :remove } if changes.empty? or changes.last[:mode] != :remove
++            changes.last[:times] += 1
++            line_offset -= 1
++          end
++          line_offset += 1
++        end
++      end
++      puts changes.inspect
++
++      if diff.new_file
++        { :type => 'new', :message => "Created file <a href='/show/#{commit.sha}/#{h diff.b_path}'>#{h diff.b_path}</a>", :content => changes }
++      elsif diff.deleted_file
++        { :type => 'delete', :message => "Deleted file #{diff.a_path}", :content => changes }
++      else
++        { :type => 'change', :message => "Changed file <a href='/show/#{commit.sha}/#{h diff.a_path}'>#{diff.a_path}</a>", :content => changes }
++      end
++    end
++  end
++
++  def j(str)
++    str.to_s.gsub('\\', '\\\\\\\\').gsub(/[&"><]/) { |special| { '&' => '\u0026', '>' => '\u003E', '<' => '\u003C', '"' => '\"' }[special] }
++  end
++end
++
++puts "Started"
+\ No newline at end of file

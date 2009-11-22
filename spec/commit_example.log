@@ -1,0 +1,51 @@
+commit 238e826e16ce33940c8a0112414c088eef7344c4
+tree 647185d180747479729e3c7f0468b4018ff79cd3
+parent 3763e8cd628ca8455ee95743397e50e191b5ec7c
+author Brenton Fletcher <bloopletech@Yotsuba.local> 1253291635 +0930
+committer Brenton Fletcher <bloopletech@Yotsuba.local> 1253291635 +0930
+
+    Fix rendering bugs, make start-up a bit nicer
+
+diff --git a/gistory.rb b/gistory.rb
+index 63cc11d..f532092 100644
+--- a/gistory.rb
++++ b/gistory.rb
+@@ -101,9 +101,9 @@ end
+ 
+ get '/commit/*' do
+   @delay = 1
+-  @lps = 2
++  @lps_change = 5
++  @lps_scroll = 20
+   @max_time = 10
+-  @wait_time_after_change = 0.75
+   @repo_dir = repo_dir
+   @commits = commits
+   @commit_index = params[:splat].first.to_i
+@@ -186,14 +186,17 @@ helpers do
+   end
+ end
+ 
+-puts "Started"
++puts "Waiting to launch gistory..."
+ 
+-sleep(5)
++Thread.new do
++  sleep(1)
+ 
+-#if RUBY_PLATFORM =~ /(win|w)32$/
+-#  `start http://localhost:6568/`
+-if RUBY_PLATFORM =~ /darwin/
+-  `open http://localhost:6568/`
+-else
+-  puts "Please open your web browser and visit http://localhost:6568/"
++  #if RUBY_PLATFORM =~ /(win|w)32$/
++  #  `start http://localhost:6568/`
++  if RUBY_PLATFORM =~ /darwin/
++    `open http://localhost:6568/`
++    puts "Launched gistory"
++  else
++    puts "Please open your web browser and visit http://localhost:6568/"
++  end
+ end
+\ No newline at end of file

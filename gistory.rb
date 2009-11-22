@@ -1,5 +1,7 @@
+$: << "lib"
+
 abort %(Usage:
-ruby gistory.rb repo_path file_path [branch_other_than_maste]
+  ruby gistory.rb repo_path file_path [branch_other_than_maste]
 ) unless ARGV.size.between?(2,3)
 
 repo_path = File.expand_path(ARGV.first)
@@ -26,34 +28,12 @@ rescue Grit::InvalidGitRepositoryError
 end
 
 $stderr.puts "Loading commits ..."
-commits = begin
-  file = ARGV[1]
-  branch = ARGV[2] || 'master'
-  log_data = repo.git.log({ :pretty => 'raw' }, "--follow", '--topo-order', '-p', branch, "--", file)
-  commit_diff_data = []
-  log_data.split("\n").each do |c|
-    if c =~ /^commit /
-      commit_diff_data << [c]
-    else
-      commit_diff_data.last << c
-    end
-  end
+require 'lib/gistory'
 
-  commit_diff_data.map do |c|
-    commit = []
-    0.upto(c.length) do |i|
-      if c[i] !~ /^diff/
-        commit << c[i]
-      else
-        break
-      end
-    end
-    diff = c[(commit.length)..-1]
+file = ARGV[1]
+branch = ARGV[2] || 'master'
 
-    { :commit => Grit::Commit.list_from_string(repo, commit.join("\n"))[0], :diff => Grit::Diff.list_from_string(repo, diff.join("\n"))[0] }
-  end.reverse
-end
-
+commits = Gistory::CommitParser.parse(repo, file, branch)
 abort %(Error: Couldn't find any commits.
 Are you sure this is a git repo and the file exists?) if commits.empty?
 
@@ -65,6 +45,10 @@ require 'erb'
 set :logging, false
 set :host, 'localhost'
 set :port, 6568
+
+get '/commits' do
+  commits.to_json
+end
 
 get '/' do
   @commits = commits
