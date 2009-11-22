@@ -74,12 +74,6 @@ Actor.class_eval do
   end
 end
 
-Time.class_eval do
-  def nice
-    strftime("%A %d/%m/%Y %I:%M %p")
-  end
-end
-
 get '/' do
   @commits = commits
 
