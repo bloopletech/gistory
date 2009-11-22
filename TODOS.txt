@@ -1,0 +1,4 @@
+* Green/red highlightine for add/remove (possibly fade out over time?).
+* Add a movie like seek bar, and play pause to seek to seek over commits.
+* Follow branch/merge, split and combine views.
+* Display some sort of metadata info on the side.

@@ -7,13 +7,14 @@ describe Gistory::CommitParser do
       @repo = stub('repo', :git => @git)
     end
     
-    it "should return an array of hashes with keys diff and commit" do
+    it "should return an array of hashes with a valid diff and a :commit key" do
       results = Gistory::CommitParser.parse(@repo, 'file.rb', 'master')
       results.length.should == 7
       results.each do |result|
         result.should be_an_instance_of(Hash)
       end
       results.first[:diff].should be_an_instance_of(Grit::Diff)
+      results.first[:diff].diff.should_not be_nil
       results.first[:commit].should be_an_instance_of(Grit::Commit)
     end
   end

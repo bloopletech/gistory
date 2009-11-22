@@ -1,0 +1,4 @@
+h1. Gistory
+
+Gistory visualizes all the changes to s file in a git repository; gistory does this by opening a browser window and then animating each change to the file over time; view this "demonstration video" for an example.
+

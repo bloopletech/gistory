@@ -28,12 +28,14 @@ rescue Grit::InvalidGitRepositoryError
 end
 
 $stderr.puts "Loading commits ..."
-require 'lib/gistory'
 
 file = ARGV[1]
 branch = ARGV[2] || 'master'
 
+require 'lib/gistory'
+
 commits = Gistory::CommitParser.parse(repo, file, branch)
+
 abort %(Error: Couldn't find any commits.
 Are you sure this is a git repo and the file exists?) if commits.empty?
 
@@ -45,10 +47,6 @@ require 'erb'
 set :logging, false
 set :host, 'localhost'
 set :port, 6568
-
-get '/commits' do
-  commits.to_json
-end
 
 get '/' do
   @commits = commits
@@ -92,7 +90,7 @@ helpers do
   def h(content)
     Rack::Utils.escape_html(content)
   end
-  
+
   def diff_to_html(commit, diff)
     if diff.diff =~ /^rename/
       { :type => 'rename', :message => diff.diff.ucfirst.gsub("\n", " => "), :content => nil }
@@ -105,7 +103,6 @@ helpers do
         { :type => 'change', :message => "Changed binary file #{h diff.a_path}", :content => nil }
       end
     else
-      #puts diff.diff
       content_lines = diff.diff.split(/\n/)[2..-1]
       line_offset = 1
       changes = []
