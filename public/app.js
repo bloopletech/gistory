@@ -1,3 +1,4 @@
+//TODO: This is a copy and paste from script.aculo.us
 Effect.ScrollToBottom = function(element)
 {
   var options = arguments[1] || { },
