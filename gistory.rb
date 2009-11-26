@@ -65,11 +65,7 @@ get '/commit/*' do
 
   @diff_content = @diff_data[:content] || []
 
-  @textual_add_remove_changes = @diff_content.select do |change|
-    change[:mode] == :add || change[:mode] == :remove
-  end.reject do |change|
-    change[:type] == "change" # is binary
-  end
+  @textual_add_remove_changes = @diff_content.select { |change| [:add, :remove].include?(change[:mode]) && change[:type] != "change"  }
 
   content_type 'text/javascript'
   erb :commit, :layout => false

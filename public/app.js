@@ -76,9 +76,6 @@ function scrollToObject(obj, callback)
     duration = 0;
   }
 
-//  console.log("issuing a scroll to obj ", obj, ", offset to obj ", obj.cumulativeOffset(), " offset by ", scrollOffset,
-//   "px taking ", duration, "seconds, total page height", $$("body")[0].getHeight(), "px");
-
   Effect.ScrollTo(obj, { duration: duration, offset: scrollOffset, afterFinish: callback });
 }
 
