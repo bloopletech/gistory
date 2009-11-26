@@ -14,11 +14,15 @@ queue = [];
   });
 <% end %>
 
-<% for change in @textual_add_remove_changes %>
-  <%= erb :"_commit_#{change[:mode]}", :layout => false, :locals => {:change => change} %>
+<% @textual_add_remove_changes.each do |change| %>
+  <% if change[:mode] == :add %>
+    addHunk(<%= change[:start] %>, "<%= j change[:lines] %>");
+  <% elsif change[:mode] == :remove %>
+    removeHunk(<%= change[:start] %>, <%= change[:times] %>);
+  <% end %>
 <% end %>
 
-<% if @commit_index < @commits.length - 1 %>
+<% if (@commit_index < @commits.length - 1) %>
   queue.push(function()
   {
     new Ajax.Request("/commit/<%= @commit_index.to_i + 1 %>", { method: 'get' });
