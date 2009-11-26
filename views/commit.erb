@@ -7,10 +7,7 @@ queue = [];
 <% if @diff_data[:type] == 'rename' %>
   queue.push(function()
   {
-    Effect.ScrollTo($$("body")[0], { duration: <%= @delay %>, offset: 0, afterFinish: function()
-    {
-      if(queue.length > 0)(queue.shift())();
-    } });
+    scrollToObject($$("body")[0], runNextInQueue); //TODO Double-check, needs delay
   });
 <% end %>
 

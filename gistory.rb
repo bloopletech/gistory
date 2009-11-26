@@ -47,6 +47,7 @@ set :host, 'localhost'
 set :port, 6568
 
 get '/' do
+  @delay = 1
   @lps_change = 5
   @lps_scroll = 20
   @commits = commits
@@ -54,10 +55,6 @@ get '/' do
 end
 
 get '/commit/*' do
-  @delay = 1
-  @lps_change = 10
-  @lps_scroll = 50
-  @max_time = 10
   @repo_dir = repo_path
   @commits = commits
   @commit_index = params[:splat].first.to_i
