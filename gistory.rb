@@ -33,6 +33,7 @@ branch = ARGV[2] || 'master'
 require 'lib/gistory'
 
 commits = Gistory::CommitParser.parse(repo, file, branch)
+Gistory::CommitParser.index_and_generate!(commits)
 
 abort %(Error: Couldn't find any commits.
 Are you sure this is a git repo and the file exists?) if commits.empty?
@@ -40,6 +41,7 @@ Are you sure this is a git repo and the file exists?) if commits.empty?
 $stderr.puts "Loaded commits"
 
 require 'sinatra'
+require 'json'
 require 'erb'
 
 set :logging, false
@@ -48,35 +50,42 @@ set :port, 6568
 
 get '/' do
   @delay = 1
-  @lps_change = 5
-  @lps_scroll = 20
+  @lps_change = 10
+  @lps_scroll = 50
   @commits = commits
   erb :index
 end
 
-get '/commit/*' do
-  @repo_dir = repo_path
+get '/commits' do
   @commits = commits
-  @commit_index = params[:splat].first.to_i
-  commit_diff = commits[@commit_index]
-  @commit, @diff = commit_diff[:commit], commit_diff[:diff] 
 
-  @diff_data = Gistory::DiffToHtml.diff_to_html(@diff)
+  content_type 'text/javascript'
+  erb :commits, :layout => false
+end
 
-  @diff_content = @diff_data[:content] || []
+get /^\/commit\/(\d+)$/ do
+  @commit_index = params['captures'][0].to_i
+  @commits = commits
 
-  @textual_add_remove_changes = @diff_content.select { |change| [:add, :remove].include?(change[:mode]) && change[:type] != "change"  }
+  @commit_diff = commits[@commit_index]
 
   content_type 'text/javascript'
   erb :commit, :layout => false
 end
 
-helpers do
-  #TODO Get rid of, or remove duplication
-  def h(content)
-    Rack::Utils.escape_html(content)
-  end
+#Given a commit number, returns the blob as of that commit
+get '/blob/*' do
+  @commit_index = params[:splat].first.to_i
+  diff = commits[@commit_index][:diff]
+  
+#  puts diff.inspect
 
+  blob = diff.deleted_file ? diff.a_blob : diff.b_blob
+puts blob.data
+  body blob.data
+end
+
+helpers do
   def j(str)
     str.to_s.gsub('\\', '\\\\\\\\').gsub(/[&"><\n\r]/) { |special| { '&' => '\u0026', '>' => '\u003E', '<' => '\u003C', '"' => '\"', "\n" => "\\n", "\r" => "\\r" }[special] }
   end

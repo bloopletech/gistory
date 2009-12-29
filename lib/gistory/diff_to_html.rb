@@ -6,16 +6,16 @@ class Gistory::DiffToHtml
 
   #TODO All the below needs to be tested
   def self.diff_to_html_rename(diff)
-    { :type => 'rename', :message => diff.diff.ucfirst.gsub("\n", " => "), :content => nil }
+    { :type => 'rename', :message => diff.diff.ucfirst.gsub("\n", " => "), :content => [] }
   end
 
   def self.diff_to_html_binary(diff)
     if diff.new_file
-      { :type => 'new', :message => "Created binary file #{h diff.b_path}", :content => nil }
+      { :type => 'new', :message => "Created binary file #{h diff.b_path}", :content => [] }
     elsif diff.deleted_file
-      { :type => 'delete', :message => "Deleted binary file #{h diff.a_path}", :content => nil }
+      { :type => 'delete', :message => "Deleted binary file #{h diff.a_path}", :content => [] }
     else
-      { :type => 'change', :message => "Changed binary file #{h diff.a_path}", :content => nil }
+      { :type => 'change', :message => "Changed binary file #{h diff.a_path}", :content => [] }
     end
   end
 
@@ -30,9 +30,14 @@ class Gistory::DiffToHtml
       if l =~ /^(\@\@ \-(\d+),(\d+) \+(\d+),(\d+) \@\@)/
         line_offset = $4.to_i == 0 ? 1 : $4.to_i
       else
-        if l == '\ No newline at end of file' && changes.length >= 2 && changes.last[:mode] == :add && changes[-2][:mode] == :remove &&            changes.last[:times] == 1 && changes[-2][:times] == 1
-          changes.pop
-          changes.pop
+        if l == '\ No newline at end of file'
+          #logic here needs checking and docs
+          if changes.length >= 2 && changes.last[:mode] == :add && changes[-2][:mode] == :remove && changes.last[:times] == 1 && changes[-2][:times] == 1
+            changes.pop
+            changes.pop
+          end
+
+          line_offset -= 1
         elsif l =~ /^\+/
           changes << { :start => line_offset, :lines => "", :times => 0, :mode => :add } if should_change or changes.empty? or changes.last[:mode] != :add
           should_change = false

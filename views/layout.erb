@@ -3,12 +3,17 @@
   <head>
     <title>Gistory</title>
     <link rel="stylesheet" type="text/css" href="/style.css">
-    <script type="text/javascript" src="/prototype.js"></script>
-    <script type="text/javascript" src="/scriptaculous.js?load=effects"></script>
+    <script type="text/javascript" src="/lib/prototype.js"></script>
+    <script type="text/javascript" src="/lib/scriptaculous.js?load=effects,slider"></script>
     <script type="text/javascript">
     var linesPerSecondForChanges = <%= @lps_change.to_f %>;
     var linesPerSecondForScrolls = <%= @lps_scroll.to_f %>;
+    var commitsLength = <%= @commits.length %>;
     </script>
+    <script type="text/javascript" src="/scrolling.js"></script>
+    <script type="text/javascript" src="/show_commit.js"></script>
+    <script type="text/javascript" src="/get_commits.js"></script>
+    <script type="text/javascript" src="/play_commits.js"></script>
     <script type="text/javascript" src="/app.js"></script>
   </head>
   <body>
