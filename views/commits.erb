@@ -1,3 +1,4 @@
 <% @commits.each_with_index do |commit_diff, commit_index| %>
+  <% puts commit_diff.inspect %>
   <%= erb :_commit, :layout => false, :locals => { :commit_diff => commit_diff, :commit_index => commit_index } %>
 <% end %>

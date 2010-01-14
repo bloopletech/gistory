@@ -19,7 +19,8 @@ function addHunk(startIndex, lines)
     {
       insertPoint.insert({ 'after': wrapper });
 
-      alert(wrapper.viewportOffset().top + ", " + blindDistance(wrapper) + ", " + (wrapper.viewportOffset().top + blindDistance(wrapper)) + ", " + document.viewport.getHeight());
+      console.log(wrapper);
+      console.log(wrapper.viewportOffset().top + ", " + blindDistance(wrapper) + ", " + (wrapper.viewportOffset().top + blindDistance(wrapper)) + ", " + document.viewport.getHeight());
       //TODO: bug here if adding a few lines at end of file, should issue a scroll down here but doesn't
       if((wrapper.viewportOffset().top + blindDistance(wrapper)) > document.viewport.getHeight())
       {

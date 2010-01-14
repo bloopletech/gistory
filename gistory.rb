@@ -35,6 +35,8 @@ require 'lib/gistory'
 commits = Gistory::CommitParser.parse(repo, file, branch)
 Gistory::CommitParser.index_and_generate!(commits)
 
+puts commits.inspect
+
 abort %(Error: Couldn't find any commits.
 Are you sure this is a git repo and the file exists?) if commits.empty?
 
