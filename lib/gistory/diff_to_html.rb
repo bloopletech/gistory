@@ -20,16 +20,16 @@ class Gistory::DiffToHtml
   end
 
 
-
+  #TODO: REFACTOR THIS SHIT SOMETHING FURIOUS
   def self.lines_to_raw_changes(lines)
     changes = []
 
     line_offset = 1
     should_change = false
     lines.each do |l|
-      #puts "line_offset: #{line_offset}, l: #{l}, changes: #{changes.inspect}"
-      if l =~ /^(\@\@ \-(\d+),(\d+) \+(\d+),(\d+) \@\@)/
-        line_offset = $4.to_i == 0 ? 1 : $4.to_i
+#      puts "line_offset: #{line_offset}, l: #{l}, changes: #{changes.inspect}"
+      if l =~ /^\@\@ \-\d+(?:|,\d+) \+(\d+)(?:|,\d+) \@\@/
+        line_offset = $1.to_i == 0 ? 1 : $1.to_i
       else
         if l == '\ No newline at end of file'
           changes.last[:nl_notice] = true if !changes.empty?
@@ -40,9 +40,10 @@ class Gistory::DiffToHtml
           changes.last[:times] += 1
           changes.last[:lines] << l[1..-1]
         elsif l =~ /^-/
-          changes << { :start => line_offset, :times => 0, :mode => :remove, :nl_notice => false } if should_change or changes.empty? or changes.last[:mode] != :remove
+          changes << { :start => line_offset, :lines => [], :times => 0, :mode => :remove, :nl_notice => false } if should_change or changes.empty? or changes.last[:mode] != :remove
           should_change = false
           changes.last[:times] += 1
+          changes.last[:lines] << l[1..-1]
           line_offset -= 1
         else
           should_change = true
@@ -57,29 +58,22 @@ class Gistory::DiffToHtml
   def self.process_newline_warnings_on_changes(changes)
     return changes if changes.length <= 1 || !changes.detect { |change| change[:nl_notice] } #Remove edge cases
 
-    puts "Reached processing stage of process_newline_warnings_on_changes: #{changes.inspect}"
-    if changes[-2][:mode] == :remove && changes[-1][:mode] == :add
-      if changes[-2][:nl_notice] && changes[-1][:nl_notice]
-        if changes[-2][:times] > 1 && changes[-1][:lines].length == 1 && changes[-2][:lines].first == changes[-1][:lines].first #3rd condition here is invalid
-          changes[-2][:start] += 1 #Handles removing and adding where there's no end newline on both
-          changes.pop
-        end
+    if (changes[-2][:nl_notice] || changes[-1][:nl_notice]) && changes[-2][:lines].first == changes[-1][:lines].first && changes[-2][:lines].length == 1 && changes[-1][:lines].length == 1
+      #Handles adding/removing a newline to the end of a file, i.e. a one line remove and a one line add
+      changes.pop
+      changes.pop
+    elsif changes[-2][:mode] == :remove && changes[-1][:mode] == :add
+      if changes[-1][:nl_notice] && changes[-2][:times] > 1 && changes[-1][:lines].length == 1 && changes[-2][:lines].first == changes[-1][:lines].first
+        #Handles removing where there's no end nl both before and after
+        changes[-2][:start] += 1
+        changes.pop
+      elsif changes[-2][:nl_notice] && changes[-2][:lines].length == 1 && changes[-1][:times] > 1 && changes[-2][:lines].first == changes[-1][:lines].first
+        #Handles adding where there's no end nl both before and after
+        changes.delete_at(-2)
+        changes[-1][:lines].shift
+        changes[-1][:start] += 1
       end
     end
-    puts "Finished processing stage: #{changes.inspect}"
-    
-    changes.each { |change| change.delete :nl_notice }
-
-=begin
-          This line will be in the diff in the following circumstances:
-          * Adding a newline to the last line in the file #No action required
-          * Removing the newline from the last line in a file
-          * Adding multiple lines, where the last line did not have a new line and now does
-          * Adding multiple lines, where the last line did not have a new line and still doesn't
-          * Removing multiple lines, where the last line did not have a new line and now does
-          * Removing multiple lines, where the last line did not have a new line and still doesn't
-          * Removing and adding multiple lines, where the last line never has a \n #You'll see 2 \ lines, one at the end of the remove and one at the end of the add
-=end
 
     changes
   end
@@ -97,8 +91,9 @@ class Gistory::DiffToHtml
     changes
   end
 
-  #TODO: REFACTOR THIS SHIT SOMETHING FURIOUS
+
   def self.diff_to_html_textual(diff)
+#    puts "COMMIT ========================================================================================="
     content_lines = diff.diff.split(/\n/)[2..-1]
     
     changes = self.lines_to_raw_changes(content_lines)

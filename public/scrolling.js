@@ -8,10 +8,7 @@ Effect.ScrollToBottom = function(element)
   if (options.offset) elementOffsets[1] += options.offset;
 
   if(elementOffsets == scrollOffsets.top) return;
-/*  console.log($(element).cumulativeOffset()[1]);
-  console.log($(element).getHeight());
-  console.log(scrollOffsets.top);
-  console.log(elementOffsets);*/
+
   return new Effect.Tween(null,
     scrollOffsets.top,
     elementOffsets,

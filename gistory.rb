@@ -35,8 +35,6 @@ require 'lib/gistory'
 commits = Gistory::CommitParser.parse(repo, file, branch)
 Gistory::CommitParser.index_and_generate!(commits)
 
-puts commits.inspect
-
 abort %(Error: Couldn't find any commits.
 Are you sure this is a git repo and the file exists?) if commits.empty?
 
@@ -52,8 +50,8 @@ set :port, 6568
 
 get '/' do
   @delay = 1
-  @lps_change = 10
-  @lps_scroll = 50
+  @lps_change = 5
+  @lps_scroll = 20
   @commits = commits
   erb :index
 end

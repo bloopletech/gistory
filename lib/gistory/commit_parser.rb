@@ -9,10 +9,6 @@ class Gistory::CommitParser
   end
 
   def self.split_commits(log)
-#    log.split(/\ncommit /).join("\ncommit ")
-#    puts log.scan(/\n(commit .*?)(?:\ncommit |\z)/m).inspect
-#puts log.split(/^commit /).map { |commit| "commit #{commit}" }.inspect
-#    log.split(/\ncommit /).map { |commit| "\ncommit #{commit}" }
     log.split(/\ncommit /).map { |commit| commit[/^commit /] ? commit : "commit #{commit}" }
   end
   
