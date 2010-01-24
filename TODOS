@@ -1,0 +1,3 @@
+* Where there is a large hunk that is removed, and the end of the commit is past the end of the viewport, we should scroll so the bottom of the viewport is the bottom of the hunk to be removed, and we should scroll with the blind up effect on the hunk, so the user can see what's being removed.
+* Add seek bar, which implies adding the /show/blob stuff.
+* Add play in reverse, which is predicated on the /show/blob.
